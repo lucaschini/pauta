@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --col-width: 340px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0e0e0f;
+  color: #f0eeea;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2e2e35;
+  border-radius: 3px;
+}
+
+/* Filter input highlight */
+.filter-highlight {
+  background: rgba(232, 197, 71, 0.25);
+  border-radius: 2px;
+  color: #e8c547;
+}
+
+/* Card animation on new */
+@keyframes cardPop {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.card-new-anim {
+  animation: cardPop 0.3s ease-out forwards;
+}
+
+/* Spin animation */
+@keyframes spinOnce {
+  to { transform: rotate(360deg); }
+}
+.spinning {
+  animation: spinOnce 0.7s linear;
+}

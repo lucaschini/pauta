@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Pauta · SP Monitor',
-  description: 'Monitor de matérias jornalísticas de São Paulo em tempo real',
+  title: "Pauta · SP Monitor",
+  description: "Monitor de matérias jornalísticas de São Paulo em tempo real",
 };
 
 export default function RootLayout({
@@ -18,6 +18,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
           rel="stylesheet"
         />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body>{children}</body>
     </html>

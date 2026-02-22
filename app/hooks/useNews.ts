@@ -86,7 +86,7 @@ export function useNews(): UseNewsReturn {
   }, [connectWs]);
 
   const refreshColumn = useCallback(async (sourceId: string) => {
-    setRefreshingCols(prev => new Set([...prev, sourceId]));
+    setRefreshingCols(prev => new Set(Array.from(prev).concat(sourceId)));
     try {
       const res = await fetch(`${API}/feed?sources=${sourceId}&limit=20`);
       const data = await res.json();
@@ -98,7 +98,7 @@ export function useNews(): UseNewsReturn {
     } catch {}
     setTimeout(() => {
       setRefreshingCols(prev => {
-        const next = new Set(prev);
+        const next = new Set(Array.from(prev));
         next.delete(sourceId);
         return next;
       });

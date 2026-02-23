@@ -16,6 +16,7 @@ export default function Home() {
     lastUpdate,
     refreshColumn,
     refreshingCols,
+    newIds,
   } = useNews();
   const { savedItems, isSaved, toggleSave } = useSaved();
 
@@ -26,7 +27,6 @@ export default function Home() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [toast, setToast] = useState("");
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const newIdsRef = useRef<Record<string, boolean>>({});
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -99,7 +99,7 @@ export default function Home() {
               key={source.id}
               source={source}
               articles={columnData[source.id]}
-              newIds={newIdsRef.current}
+              newIds={newIds}
               globalFilter={globalFilter}
               columnFilter={columnFilters[source.id] || ""}
               onColumnFilterChange={(val) =>

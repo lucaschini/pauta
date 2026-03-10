@@ -4,7 +4,7 @@ Frontend Next.js do painel de matérias jornalísticas de SP.
 
 ## Stack
 
-- **Next.js 14** (App Router)
+- **Next.js** (App Router)
 - **TypeScript**
 - **Tailwind CSS**
 - WebSocket nativo para updates em tempo real
@@ -62,6 +62,3 @@ npm run build
 npm start
 ```
 
-## Deploy
-
-Configure `NEXT_PUBLIC_API_URL` apontando para o backend em produção.

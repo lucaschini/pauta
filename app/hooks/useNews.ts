@@ -1,28 +1,33 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Article, Source } from "../types";
+
 const API = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 interface ColumnData {
   [sourceId: string]: Article[] | undefined;
 }
+
 interface UseNewsReturn {
   sources: Source[];
   columnData: ColumnData;
-  wsConnected: boolean;
+  wsConnected: boolean; // mantido por compatibilidade com o Header
   lastUpdate: string;
   refreshColumn: (sourceId: string) => Promise<void>;
   refreshingCols: Set<string>;
   newIds: Record<string, boolean>;
 }
+
 export function useNews(): UseNewsReturn {
   const [sources, setSources] = useState<Source[]>([]);
   const [columnData, setColumnData] = useState<ColumnData>({});
-  const [wsConnected, setWsConnected] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState("");
   const [refreshingCols, setRefreshingCols] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Record<string, boolean>>({});
+
   const seenIds = useRef<Record<string, boolean>>({});
-  const wsRef = useRef<WebSocket | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
   const processArticles = useCallback((rawArticles: any[]): Article[] => {
     return rawArticles.map((a: any) => ({
@@ -34,21 +39,18 @@ export function useNews(): UseNewsReturn {
     }));
   }, []);
 
-  const processWsUpdate = useCallback(
+  const processUpdate = useCallback(
     (sourceId: string, data: any) => {
       const articles = processArticles(data.articles || []);
 
-      // Primeira vez que recebe essa fonte — apenas registra os ids, não marca como novo
-      const isFirstLoad = !Object.keys(seenIds.current).some((id) =>
-        articles.find((a) => a.id === id),
-      );
+      // Primeira carga — só registra os ids, não marca como novo
+      const isFirstLoad = !articles.some((a) => seenIds.current[a.id]);
 
       if (isFirstLoad) {
         articles.forEach((a) => {
           seenIds.current[a.id] = true;
         });
       } else {
-        // Updates subsequentes — compara e marca novos
         const fresh: Record<string, boolean> = {};
         articles.forEach((a) => {
           if (!seenIds.current[a.id]) {
@@ -70,32 +72,41 @@ export function useNews(): UseNewsReturn {
     [processArticles],
   );
 
-  const connectWs = useCallback(() => {
-    const wsUrl = API.replace(/^http/, "ws");
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    ws.onopen = () => setWsConnected(true);
-    ws.onmessage = (event) => {
+  const connectSSE = useCallback(() => {
+    // Fecha conexão anterior se existir
+    esRef.current?.close();
+
+    const es = new EventSource(`${API}/events`);
+    esRef.current = es;
+
+    es.onopen = () => setConnected(true);
+
+    es.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === "update") processWsUpdate(msg.source, msg.data);
+        if (msg.type === "update") processUpdate(msg.source, msg.data);
       } catch {}
     };
-    ws.onclose = () => {
-      setWsConnected(false);
-      setTimeout(connectWs, 5000);
+
+    es.onerror = () => {
+      setConnected(false);
+      es.close();
+      // EventSource já reconecta automaticamente, mas fechamos e reabrimos
+      // manualmente para ter controle do estado `connected`
+      setTimeout(connectSSE, 5000);
     };
-    ws.onerror = () => ws.close();
-  }, [processWsUpdate]);
+  }, [processUpdate]);
 
   useEffect(() => {
     fetch(`${API}/sources`)
       .then((r) => r.json())
       .then(setSources)
       .catch(console.error);
-    connectWs();
-    return () => wsRef.current?.close();
-  }, [connectWs]);
+
+    connectSSE();
+
+    return () => esRef.current?.close();
+  }, [connectSSE]);
 
   const refreshColumn = useCallback(
     async (sourceId: string) => {
@@ -123,7 +134,7 @@ export function useNews(): UseNewsReturn {
   return {
     sources,
     columnData,
-    wsConnected,
+    wsConnected: connected, // alias para não quebrar o Header
     lastUpdate,
     refreshColumn,
     refreshingCols,

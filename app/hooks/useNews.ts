@@ -11,11 +11,12 @@ interface ColumnData {
 interface UseNewsReturn {
   sources: Source[];
   columnData: ColumnData;
-  wsConnected: boolean; // mantido por compatibilidade com o Header
+  wsConnected: boolean;
   lastUpdate: string;
   refreshColumn: (sourceId: string) => Promise<void>;
   refreshingCols: Set<string>;
   newIds: Record<string, boolean>;
+  serviceActive: boolean | null; // null = ainda verificando
 }
 
 export function useNews(): UseNewsReturn {
@@ -25,6 +26,7 @@ export function useNews(): UseNewsReturn {
   const [lastUpdate, setLastUpdate] = useState("");
   const [refreshingCols, setRefreshingCols] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Record<string, boolean>>({});
+  const [serviceActive, setServiceActive] = useState<boolean | null>(null);
 
   const seenIds = useRef<Record<string, boolean>>({});
   const esRef = useRef<EventSource | null>(null);
@@ -42,8 +44,6 @@ export function useNews(): UseNewsReturn {
   const processUpdate = useCallback(
     (sourceId: string, data: any) => {
       const articles = processArticles(data.articles || []);
-
-      // Primeira carga — só registra os ids, não marca como novo
       const isFirstLoad = !articles.some((a) => seenIds.current[a.id]);
 
       if (isFirstLoad) {
@@ -73,9 +73,7 @@ export function useNews(): UseNewsReturn {
   );
 
   const connectSSE = useCallback(() => {
-    // Fecha conexão anterior se existir
     esRef.current?.close();
-
     const es = new EventSource(`${API}/events`);
     esRef.current = es;
 
@@ -91,19 +89,34 @@ export function useNews(): UseNewsReturn {
     es.onerror = () => {
       setConnected(false);
       es.close();
-      // EventSource já reconecta automaticamente, mas fechamos e reabrimos
-      // manualmente para ter controle do estado `connected`
       setTimeout(connectSSE, 5000);
     };
   }, [processUpdate]);
 
   useEffect(() => {
-    fetch(`${API}/sources`)
+    // Verifica horário de operação antes de qualquer coisa
+    fetch(`${API}/status`)
       .then((r) => r.json())
-      .then(setSources)
-      .catch(console.error);
-
-    connectSSE();
+      .then((data) => {
+        setServiceActive(data.active);
+        if (data.active) {
+          // Só busca fontes e conecta SSE se estiver no horário
+          fetch(`${API}/sources`)
+            .then((r) => r.json())
+            .then(setSources)
+            .catch(console.error);
+          connectSSE();
+        }
+      })
+      .catch(() => {
+        // Se /status falhar, assume ativo para não bloquear
+        setServiceActive(true);
+        fetch(`${API}/sources`)
+          .then((r) => r.json())
+          .then(setSources)
+          .catch(console.error);
+        connectSSE();
+      });
 
     return () => esRef.current?.close();
   }, [connectSSE]);
@@ -134,10 +147,11 @@ export function useNews(): UseNewsReturn {
   return {
     sources,
     columnData,
-    wsConnected: connected, // alias para não quebrar o Header
+    wsConnected: connected,
     lastUpdate,
     refreshColumn,
     refreshingCols,
     newIds,
+    serviceActive,
   };
 }

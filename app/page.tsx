@@ -6,6 +6,7 @@ import { useSaved } from "./hooks/useSaved";
 import Header from "./components/Header";
 import Column from "./components/Column";
 import SavedPanel from "./components/SavedPanel";
+import OfflineScreen from "./components/OfflineScreen";
 import { Article } from "./types";
 
 export default function Home() {
@@ -17,6 +18,7 @@ export default function Home() {
     refreshColumn,
     refreshingCols,
     newIds,
+    serviceActive,
   } = useNews();
   const { savedItems, isSaved, toggleSave } = useSaved();
 
@@ -47,6 +49,31 @@ export default function Home() {
   const handleRefreshAll = useCallback(() => {
     sources.forEach((src) => refreshColumn(src.id));
   }, [sources, refreshColumn]);
+
+  // Ainda verificando o status
+  if (serviceActive === null) {
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0e0e0f",
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: "13px",
+          color: "#3e3e48",
+        }}
+      >
+        verificando...
+      </div>
+    );
+  }
+
+  // Fora do horário
+  if (!serviceActive) {
+    return <OfflineScreen />;
+  }
 
   return (
     <div
